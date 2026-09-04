@@ -1,6 +1,7 @@
 import os
 from fastapi import FastAPI
 from pydantic import BaseModel
+from mistralai.client import Mistral
 
 app = FastAPI(title="Mayra AI")
 
@@ -23,8 +24,31 @@ def chat(request: ChatRequest):
     message = request.message.strip()
 
     if not message:
-        return {"reply": "কিছু লিখুন।"}
+        return {"reply": "কিছু লিখুন"}
 
-    return {
-        "reply": f"মায়রা বলছে: আপনি লিখেছেন — {message}"
-    }
+    api_key = os.getenv("MISTRAL_API_KEY")
+
+    if not api_key:
+        return {"reply": "Mistral API key সেট করা হয়নি।"}
+
+    try:
+        client = Mistral(api_key=api_key)
+
+        response = client.chat.complete(
+            model="mistral-small-latest",
+            messages=[
+                {
+                    "role": "user",
+                    "content": message
+                }
+            ]
+        )
+
+        return {
+            "reply": response.choices[0].message.content
+        }
+
+    except Exception as e:
+        return {
+            "reply": "দুঃখিত, এখন উত্তর দিতে সমস্যা হচ্ছে।"
+        }
