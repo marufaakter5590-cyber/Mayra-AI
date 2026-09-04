@@ -1,12 +1,14 @@
 import os
 from fastapi import FastAPI
 from pydantic import BaseModel
-from mistralai.client import Mistral
+from google import genai
 
 app = FastAPI(title="Mayra AI")
 
+
 class ChatRequest(BaseModel):
     message: str
+
 
 @app.get("/")
 def home():
@@ -15,9 +17,11 @@ def home():
         "status": "online"
     }
 
+
 @app.get("/healthz")
 def health():
     return {"status": "healthy"}
+
 
 @app.post("/chat")
 def chat(request: ChatRequest):
@@ -26,29 +30,24 @@ def chat(request: ChatRequest):
     if not message:
         return {"reply": "কিছু লিখুন"}
 
-    api_key = os.getenv("MISTRAL_API_KEY")
+    api_key = os.getenv("GEMINI_API_KEY")
 
     if not api_key:
-        return {"reply": "Mistral API key সেট করা হয়নি।"}
+        return {"reply": "Gemini API key সেট করা হয়নি।"}
 
     try:
-        client = Mistral(api_key=api_key)
+        client = genai.Client(api_key=api_key)
 
-        response = client.chat.complete(
-            model="mistral-small-latest",
-            messages=[
-                {
-                    "role": "user",
-                    "content": message
-                }
-            ]
+        response = client.models.generate_content(
+            model="gemini-3.7-flash",
+            contents=message
         )
 
         return {
-            "reply": response.choices[0].message.content
+            "reply": response.text
         }
 
-    except Exception as e:
+    except Exception:
         return {
             "reply": "দুঃখিত, এখন উত্তর দিতে সমস্যা হচ্ছে।"
         }
